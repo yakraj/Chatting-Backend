@@ -1,27 +1,83 @@
 const express = require("express");
-const knex = require("knex");
-const pg = require("pg");
 
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const Uniqid = require("uniqid");
+const bcrypt = require("bcrypt");
+
+// here i'm importing controllers
+const ChatPollCreate = require("./controllers/chatpool.create");
+const chatarchiveReq = require("./controllers/chatarchive.req");
+const Crediantials = require("./controllers/crediantials");
+const Databases = require("./controllers/database");
+const liveWorker = require("./controllers/live.workers");
+
+const db = Databases.db;
 const app = express();
-
+app.use(cors());
+app.use(bodyParser.json());
 // here is the time to configure our database postgres with knex
-const db = knex({
-  client: "pg",
-  connection: {
-    host: "blvua3zkrou720hlljub-postgresql.services.clever-cloud.com",
-    user: "ujy8baponfc11ns1wrj7",
-    password: "uvLS1mRj003Re4TJXo1T2db2EfOZXn",
-    database: "blvua3zkrou720hlljub",
-  },
-});
+
 app.get("/", (req, res) => {
-  db.select("*")
-    .from("allusers")
-    .then((response) => {
-      res.json(response).status(200);
-    })
-    .catch((err) => res.send(err).status(400));
+  db("chatarchive")
+    .select("*")
+    .then((response) => res.json(response))
+    .catch((err) => res.json(err));
 });
+app.get("/users", (req, res) => {
+  db("users")
+    .select("*")
+    .then((response) => res.json(response))
+    .catch((err) => res.json(err));
+});
+
+//here is the call for insert usersdata and crediantials
+app.post("/adduser", Crediantials.AddUser(db, Uniqid, bcrypt));
+
+// this route will handle login users
+app.post("/login", Crediantials.UserLogIn(db, bcrypt));
+
+// this code will handle all people search result of peoples
+
+app.post("/searchuser", Crediantials.SearchUser(db));
+
+// this will handle call of single user
+app.post("/singleuser", Crediantials.SingleUser(db));
+
+// now from here it will create chatRequests to connect
+app.post("/chatreq", chatarchiveReq.ConnectChatRequest(db));
+
+// this will handle all chat requests that are come to the user
+app.post("/chatrequests", chatarchiveReq.ChatDataReq(db));
+
+// this will handle wll chat requests that has been send to others
+
+app.post("/pending/chatrequests", chatarchiveReq.PendingArchives(db));
+// a special route for accepet chat request and cretae a new chatarchive connection
+app.post(
+  "/connectio/accept-chat-req",
+  chatarchiveReq.AcceptChatReq(db, Uniqid)
+);
+
+// now here on this server will provide data of chatarchive
+app.post("/chatarchive", chatarchiveReq.ChatArchiveData(db));
+// this route wil
+app.post("/createchat", ChatPollCreate.CreateChat(db));
+// this will return all chats from single chatid
+app.post("/getchats", ChatPollCreate.GetChats(db));
+// main component for creating chatpool and update to user
+app.post("/getpollchats", ChatPollCreate.PollChat());
+// it will receive online status from user and user and store it as online
+app.post("/send/online-status", liveWorker.SendStatus());
+// it will receive online status from user and user and store it as online
+app.post("/get/online-status", liveWorker.GetStatus());
+// this route will handle to make changes in message seen status 
+app.post("/crete/chats/seen-send/status",liveWorker.CreateSeenChat())
+// through out this request the client will lookup who is there online and which chatid is being seen 
+app.post("/get/chats/seen-status",liveWorker.ReqSeenVal())
+
+
+
 
 const port = 5001;
 app.listen(port, () => {
