@@ -99,6 +99,7 @@ const GetChats =(db) =>(req,res)=>{
     const { chatid } = req.body;
     db("chats")
       .select("*")
+      .orderBy('id','asc')
       .where("chatid", chatid)
       .then((chats) => {
         res.json(chats).status(200);

@@ -86,7 +86,7 @@ function SeenReqRemove() {
   if (StoreSeenReqs.length) {
     var removefind = Exstfinder();
     for (let res of removefind) {
-      res.res.end().status(204);
+      res.res.json('nothing').status(204);
     }
   }
   removefind &&
@@ -116,12 +116,12 @@ const CreateSeenChat = ()=>(req,res) =>{
 let waiters = StoreSeenReqs.find(x=> x.userid === userid)
 StoreSeenReqs = StoreSeenReqs.filter(x=> x.userid !== userid)
 if(waiters){
-  waiters.res.json(tempObject)
+  waiters.res.json([tempObject])
   db('chats').update({seen: true}).where('chatid',chatid).andWhere('seen',false).andWhere('userfrom', userid).then(response => response)
 }else{
   StoreSeen.push(tempObject);
 }
-  res.end().status(200)
+  res.json('nothing to send').status(200)
 }
 
 const ReqSeenVal = () =>(req,res) =>{
