@@ -14,7 +14,14 @@ const liveWorker = require("./controllers/live.workers");
 
 const db = Databases.db;
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+  maxAge: 3600
+}));
+
 app.use(bodyParser.json());
 // here is the time to configure our database postgres with knex
 
