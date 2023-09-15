@@ -11,16 +11,19 @@ const chatarchiveReq = require("./controllers/chatarchive.req");
 const Crediantials = require("./controllers/crediantials");
 const Databases = require("./controllers/database");
 const liveWorker = require("./controllers/live.workers");
+const crediantials = require("./controllers/crediantials");
 
 const db = Databases.db;
 const app = express();
-app.use(cors({
-  origin: '*',
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-  preflightContinue: false,
-  optionsSuccessStatus: 204,
-  maxAge: 3600
-}));
+app.use(
+  cors({
+    origin: "*",
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+    maxAge: 3600,
+  }),
+);
 
 app.use(bodyParser.json());
 // here is the time to configure our database postgres with knex
@@ -52,18 +55,22 @@ app.post("/searchuser", Crediantials.SearchUser(db));
 app.post("/singleuser", Crediantials.SingleUser(db));
 
 // now from here it will create chatRequests to connect
-app.post("/chatreq", chatarchiveReq.ConnectChatRequest(db));
+app.post("/chatreq", chatarchiveReq.ConnectChatRequest(db, Uniqid));
 
 // this will handle all chat requests that are come to the user
 app.post("/chatrequests", chatarchiveReq.ChatDataReq(db));
 
 // this will handle wll chat requests that has been send to others
-
 app.post("/pending/chatrequests", chatarchiveReq.PendingArchives(db));
+
+// while person wants to cancel his chat request
+
+app.post("/cancel/chatreq", chatarchiveReq.CancelReq(db));
+
 // a special route for accepet chat request and cretae a new chatarchive connection
 app.post(
   "/connectio/accept-chat-req",
-  chatarchiveReq.AcceptChatReq(db, Uniqid)
+  chatarchiveReq.AcceptChatReq(db, Uniqid),
 );
 
 // now here on this server will provide data of chatarchive
@@ -78,13 +85,14 @@ app.post("/getpollchats", ChatPollCreate.PollChat());
 app.post("/send/online-status", liveWorker.SendStatus());
 // it will receive online status from user and user and store it as online
 app.post("/get/online-status", liveWorker.GetStatus());
-// this route will handle to make changes in message seen status 
-app.post("/crete/chats/seen-send/status",liveWorker.CreateSeenChat())
-// through out this request the client will lookup who is there online and which chatid is being seen 
-app.post("/get/chats/seen-status",liveWorker.ReqSeenVal())
+// this route will handle to make changes in message seen status
+app.post("/crete/chats/seen-send/status", liveWorker.CreateSeenChat());
+// through out this request the client will lookup who is there online and which chatid is being seen
+app.post("/get/chats/seen-status", liveWorker.ReqSeenVal());
 
+// here i'm going to use some update and modify routes for users
 
-
+app.put("/update/user/name", crediantials.UpdateName(db));
 
 const port = 5001;
 app.listen(port, () => {

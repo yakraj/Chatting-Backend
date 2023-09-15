@@ -1,4 +1,4 @@
-const ConnectChatRequest = (db) => (req, res) => {
+const ConnectChatRequest = (db, Uniqid) => (req, res) => {
   const { reqfrom, reqto, message } = req.body;
   const ReqId = Uniqid(reqfrom.substring(0, 4) + reqto.substring(0, 4));
   db("chatreq")
@@ -10,8 +10,48 @@ const ConnectChatRequest = (db) => (req, res) => {
       status: false,
       date: new Date(),
     })
-    .then((response) => res.json(response).status(200))
+    .then((response) => {
+      db("chatreq")
+        .select(
+          "chatreq.*",
+          "users.name",
+          "users.address",
+          "users.avatar",
+          "users.cover",
+          "users.desig",
+        )
+        .join("users", "chatreq.reqto", "users.userid")
+        .where("chatreq.reqfrom", reqfrom)
+        .then((response) => {
+          res.json(response).status(200);
+        })
+        .catch((err) => res.json(err).status(400));
+    })
     .catch((err) => res.json(err).status(400));
+};
+
+const CancelReq = (db) => (req, res) => {
+  const { reqid, user } = req.body;
+  db("chatreq")
+    .where("reqid", reqid)
+    .del()
+    .then((deleted) => {
+      db("chatreq")
+        .select(
+          "chatreq.*",
+          "users.name",
+          "users.address",
+          "users.avatar",
+          "users.cover",
+          "users.desig",
+        )
+        .join("users", "chatreq.reqto", "users.userid")
+        .where("chatreq.reqfrom", user)
+        .then((response) => {
+          res.json(response).status(200);
+        })
+        .catch((err) => res.json(err).status(402));
+    });
 };
 
 const ChatDataReq = (db) => (req, res) => {
@@ -23,7 +63,7 @@ const ChatDataReq = (db) => (req, res) => {
       "users.address",
       "users.avatar",
       "users.cover",
-      "users.desig"
+      "users.desig",
     )
     .join("users", "chatreq.reqfrom", "users.userid")
     .where("chatreq.reqto", userid)
@@ -42,7 +82,7 @@ const PendingArchives = (db) => (req, res) => {
       "users.address",
       "users.avatar",
       "users.cover",
-      "users.desig"
+      "users.desig",
     )
     .join("users", "chatreq.reqto", "users.userid")
     .where("chatreq.reqfrom", userid)
@@ -68,7 +108,33 @@ const AcceptChatReq = (db, Uniqid) => (req, res) => {
           chatid: ChatId,
         })
         .then((created) => {
-          res.json("accepted").status(200);
+          //  it will return the data of new chatarchive
+          db("chatarchive")
+            .select(
+              "chatarchive.*",
+              "users.name",
+              "users.userid",
+              "users.online",
+              "users.avatar",
+            )
+            .join("users", function () {
+              this.on(function () {
+                this.on("chatarchive.user1", "=", "users.userid").andOn(
+                  "chatarchive.user2",
+                  "=",
+                  db.raw("?", [reqto]),
+                );
+              }).orOn(function () {
+                this.on("chatarchive.user2", "=", "users.userid").andOn(
+                  "chatarchive.user1",
+                  "=",
+                  db.raw("?", [reqto]),
+                );
+              });
+            })
+            .then((response) => {
+              res.json(response).status(200);
+            });
         });
     });
 };
@@ -81,20 +147,20 @@ const ChatArchiveData = (db) => (req, res) => {
       "users.name",
       "users.userid",
       "users.online",
-      "users.avatar"
+      "users.avatar",
     )
     .join("users", function () {
       this.on(function () {
         this.on("chatarchive.user1", "=", "users.userid").andOn(
           "chatarchive.user2",
           "=",
-          db.raw("?", [user])
+          db.raw("?", [user]),
         );
       }).orOn(function () {
         this.on("chatarchive.user2", "=", "users.userid").andOn(
           "chatarchive.user1",
           "=",
-          db.raw("?", [user])
+          db.raw("?", [user]),
         );
       });
     })
@@ -109,4 +175,5 @@ module.exports = {
   PendingArchives: PendingArchives,
   AcceptChatReq: AcceptChatReq,
   ChatArchiveData: ChatArchiveData,
+  CancelReq: CancelReq,
 };

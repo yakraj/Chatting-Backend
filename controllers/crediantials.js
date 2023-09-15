@@ -29,61 +29,78 @@ const AddUser = (db, Uniqid, bcrypt) => (req, res) => {
   });
 };
 
-
-
-const UserLogIn = (db,bcrypt) =>(req, res) => {
-    const { umail, pass } = req.body;
-    db.select("userid", "hash")
-      .from("crediantials")
-      .where("userid", umail)
-      .orWhere("email", umail)
-      .then((response) => {
-        if (response.length) {
-          bcrypt.compare(pass, response[0].hash, function (err, result) {
-            if (err) {
-              res.send("userid or password wrong").status(400);
+const UserLogIn = (db, bcrypt) => (req, res) => {
+  const { umail, pass } = req.body;
+  db.select("userid", "hash")
+    .from("crediantials")
+    .where("userid", umail)
+    .orWhere("email", umail)
+    .then((response) => {
+      if (response.length) {
+        bcrypt.compare(pass, response[0].hash, function (err, result) {
+          if (err) {
+            res.send("userid or password wrong").status(400);
+          } else {
+            if (result) {
+              db.select("*")
+                .from("users")
+                .where("userid", response[0].userid)
+                .then((resp) => {
+                  res.json(resp).status(200);
+                });
             } else {
-              if (result) {
-                db.select("*")
-                  .from("users")
-                  .where("userid", response[0].userid)
-                  .then((resp) => {
-                    res.json(resp).status(200);
-                  });
-              } else {
-                res.send("wrong crediantials");
-              }
+              res.send("wrong crediantials");
             }
-          });
-        }
-      });
-  }
+          }
+        });
+      }
+    });
+};
 
+const SearchUser = (db) => (req, res) => {
+  const { user } = req.body;
+  db.select("*")
+    .from("users")
+    .where("userid", "ilike", `%${user}%`)
+    .orWhere("name", "ilike", `%${user}%`)
+    .then((users) => {
+      res.json(users);
+    });
+};
 
-const SearchUser = (db) =>(req, res) => {
-    const { user } = req.body;
-    db.select("*")
-      .from("users")
-      .where("userid", "ilike", `%${user}%`)
-      .orWhere("name", "ilike", `%${user}%`)
-      .then((users) => {
-        res.json(users);
-      });
-  }
+const SingleUser = (db) => (req, res) => {
+  const { user } = req.body;
+  db.select("*")
+    .from("users")
+    .where("userid", user)
+    .then((users) => {
+      res.json(users);
+    });
+};
 
-const SingleUser = (db) =>(req, res) => {
-    const { user } = req.body;
-    db.select("*")
-      .from("users")
-      .where("userid", user)
-      .then((users) => {
-        res.json(users);
-      });
-  }
+// here it is the update section
+
+const UpdateName = (db) => (req, res) => {
+  const { user, name } = req.body;
+  db("users")
+    .update({ name: name })
+    .where("userid", user)
+    .then((response) => {
+      db("users")
+        .select("*")
+        .where("userid", user)
+        .then((data) => {
+          res.json(data).status(200);
+        });
+    })
+
+    .catch((er) => res.json(err));
+};
 
 module.exports = {
   AddUser: AddUser,
-  UserLogIn:UserLogIn,
-  SearchUser:SearchUser,
-  SingleUser:SingleUser
+  UserLogIn: UserLogIn,
+  SearchUser: SearchUser,
+  SingleUser: SingleUser,
+  UpdateName: UpdateName,
 };
