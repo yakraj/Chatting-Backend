@@ -1,5 +1,6 @@
+require('dotenv').config()
 const express = require("express");
-
+const cloudinary = require('cloudinary').v2;
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const Uniqid = require("uniqid");
@@ -15,6 +16,7 @@ const crediantials = require("./controllers/crediantials");
 
 const db = Databases.db;
 const app = express();
+//configuration of cors for multiple thread requests
 app.use(
   cors({
     origin: "*",
@@ -24,6 +26,14 @@ app.use(
     maxAge: 3600,
   }),
 );
+// configuration of cloudinary for upload image 
+   cloudinary.config({
+     cloud_name: 'Chatting App',
+     api_key: process.env.CLOUDINARY_API,
+     api_secret: process.env.CLOUDINARY_SECRET
+   });
+
+
 
 app.use(bodyParser.json());
 // here is the time to configure our database postgres with knex
@@ -40,6 +50,7 @@ app.get("/users", (req, res) => {
     .then((response) => res.json(response))
     .catch((err) => res.json(err));
 });
+
 
 //here is the call for insert usersdata and crediantials
 app.post("/adduser", Crediantials.AddUser(db, Uniqid, bcrypt));
@@ -93,6 +104,8 @@ app.post("/get/chats/seen-status", liveWorker.ReqSeenVal());
 // here i'm going to use some update and modify routes for users
 
 app.put("/update/user/name", crediantials.UpdateName(db));
+//this route willl be used for update avatar image of user
+app.put("/update/user/avatar", crediantials.UpdateAvatar(db,cloudinary));
 
 const port = 5001;
 app.listen(port, () => {

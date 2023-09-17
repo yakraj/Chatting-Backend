@@ -97,10 +97,21 @@ const UpdateName = (db) => (req, res) => {
     .catch((er) => res.json(err));
 };
 
+// here i'll update my useravatar with connecting cloudinary api
+
+
+const UpdateAvatar = (db,cloudinary) =>(req,res)=>{
+
+const image = req.body.fileData; 
+  console.log(req.body)
+}
+
+
 module.exports = {
   AddUser: AddUser,
   UserLogIn: UserLogIn,
   SearchUser: SearchUser,
   SingleUser: SingleUser,
   UpdateName: UpdateName,
+  UpdateAvatar: UpdateAvatar,
 };
